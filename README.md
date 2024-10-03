@@ -1,10 +1,11 @@
 Strictly for converting GeoChat VQA format to align with the format Florence2 was pretrained on (see Florence2 weaknesses technical documentation). TLDR from technical documentation: Florence2 hates plurals and linking unicode character that implies multiple object-categary in ```<p>phrase</p>``` such as comma, "and". <br>
 
 Overall workflow:
-- Step 1: ```python format_GeoChat2Florence2.py``` to get VQA instruction dataset for Florence2. Simultaneously, ```python extract_grounding.py``` to get ```[grounding]``` VQA instruction dataset for Florence2.
-- Step 2: run flatten_any_VQA.py to flattened both resulting datasets from format_GeoChat2Florence2.py and extract_grounding.py.
-- Step 3: get familarise yourself with training loop by VScode debug debug_tuneFlorence.py. 90% of your technical questions can be resolved by spending 30 mins looking through the code a bit.
-- Step 4: If wanting to run on 1 GPU, ```python debug_tuneFlorence.py```, if wanting to DDP train on multiple GPUs in 1 node, ```CUDA_VISIBLE_DEVICEs=... torchrun --nprocs_per_node=... parallel_tuneFlorence.py```
+1. Download GeoChat VQA training text prompts and their corresponding images from here: https://huggingface.co/datasets/MBZUAI/GeoChat_Instruct/tree/main. If you are beginner to HuggingFace, create an account and create an API token first.
+2. ```python format_GeoChat2Florence2.py``` to get VQA prompts that pretrained Florence2 get used to. Simultaneously, ```python extract_grounding.py``` to get grounding VQA prompts that pretrained Florence2 get used to.
+3. ```python flatten_any_VQA.py``` to flatten both resulting datasets from format_GeoChat2Florence2.py and extract_grounding.py.
+4. Familarise yourself with training loop by VScode debug debug_tuneFlorence.py. 90% of your technical questions can be resolved by spending 30 mins looking through the code a bit.
+5. If run on 1 GPU, ```python debug_tuneFlorence.py```, if DDP train on multiple GPUs in 1 node, ```CUDA_VISIBLE_DEVICEs=... torchrun --nprocs_per_node=... parallel_tuneFlorence.py```
 
 Important .py files to keep in mind.
 - debug_tuneFlorence.py: Basically a training loop of Florence2 on 1 GPU that you can debug on VSCode. **Really recommend** anyone to debug the pipeline for 30 mins before asking me questions. 
