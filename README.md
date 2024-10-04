@@ -1,4 +1,4 @@
-Here's an example to reformat some random VQA to align with the format Florence2 was pretrained on (see Florence2 weaknesses technical documentation). TLDR from technical documentation: Florence2 hates plurals and linking unicode character that implies multiple object-categary in ```<p>phrase</p>``` such as comma, "and". <br> ***Obv, I can't say much in detail because NDA***
+***Obv, I can't say much in detail about how deal with each individual dataset because NDA*** But here I can share some common senses to preprocess any VQA in general for any VLM. Here's an example to reformat some random VQA to align with the format Florence2 was pretrained on (see Florence2 weaknesses technical documentation).
 
 Overall workflow:
 1. Download GeoChat VQA training text prompts and their corresponding images from here: https://huggingface.co/datasets/MBZUAI/GeoChat_Instruct/tree/main. If you are beginner to HuggingFace, create an account and create an API token first.
