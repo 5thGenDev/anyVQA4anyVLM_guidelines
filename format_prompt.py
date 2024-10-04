@@ -72,14 +72,14 @@ def geochat_to_florence2_bbox(box):
     bottom right(x1, y1)
     box = [x0, y0, x1, y1]
     """
-    geochat_bbox = 100
+    original_bbox = 100
     florence2_bbox = 1000
     florence_box = []
     for coord in box:
         float_coord = float(coord)
         if float_coord > geochat_bbox:
-            raise CoordinateValueError(float_coord, geochat_bbox)
-        scaled_float_coord = round(float_coord/ geochat_bbox * florence2_bbox)
+            raise CoordinateValueError(float_coord, original_bbox)
+        scaled_float_coord = round(float_coord/ original_bbox * florence2_bbox)
         scaled_str_coord = str(scaled_float_coord)
         florence_box.append(scaled_str_coord) 
     return florence_box
@@ -118,24 +118,6 @@ def format_refer(question, answer):
     return formatted_question, formatted_answer
 
 
-def format_scene_classify(question):
-    question = question.strip()
-    formatted_question = "<SCENE_CLASSIFY>"
-    sentences = question.split('.')
-    sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
-    for idx, sentence in enumerate(sentences):
-        if idx == 0:
-            formatted_question += f"{sentence}"
-            continue
-        
-        if sentence.startswith("Classes:"):
-            phrase = sentence.split("Classes")[-1].strip() 
-            sentence = f"{phrase}"
-        formatted_question += f"{sentence}. "
-    
-    return formatted_question.strip()
-
-
 def format_vqa(question):
     sentences = question.split('.')
     sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
@@ -160,13 +142,7 @@ def format_conversations(conversations, image_path):
                 formatted_conversations.append({'from': 'gpt', 'value': formatted_answer})
             except(CoordinateValueError, PhraseError):
                 raise
-                
-    elif question.startswith('Classify'):
-        for i in range(0, len(conversations), 2):
-            formatted_question = format_scene_classify(conversations[i]['value'])
-            formatted_conversations.append({'from': 'human', 'value': formatted_question})
-            formatted_conversations.append({'from': 'gpt', 'value': conversations[i+1]['value']})
-            
+                            
     else:
         for i in range(0, len(conversations), 2):
             formatted_question = format_vqa(conversations[i]['value'])
