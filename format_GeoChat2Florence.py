@@ -118,101 +118,6 @@ def format_refer(question, answer):
     return formatted_question, formatted_answer
 
 
-def format_identify(question, answer):
-    phrase_pattern = r"<p>(.*?)</p>"
-    old_hbbox_pattern = r"\{(<\d+>)(<\d+>)(<\d+>)(<\d+>)\|<(\d+)>\}"
-    
-    phrase = re.search(phrase_pattern, answer).group(1)
-    if re.search(old_hbbox_pattern, phrase) or inconvertible_phrase(phrase):
-        raise PhraseError(phrase)
-    formatted_answer = f"{phrase}"
-    
-    formatted_question = "<REGION_TO_DESCRIPTION>"    
-    matched_old_hbbox_pattern = list(re.finditer(old_hbbox_pattern, question))
-    hbbox_pattern = ""
-    match = matched_old_hbbox_pattern[0]
-    try: 
-        locs = [match.group(i).strip('<>') for i in range(1, 5)]
-        locs = geochat_to_florence2_bbox(locs)
-        hbbox_pattern += "".join([f"<loc_{loc}>" for loc in locs])
-    except CoordinateValueError:
-        raise
-    
-    angle = match.group(5)
-    hbbox_pattern += f"<angle_{angle}>"
-    formatted_question += f"{hbbox_pattern}"
-        
-    return formatted_question, formatted_answer
-
-
-def format_grounding_visual(answer):
-    formatted_question = "<DENSE_REGION_CAPTION>"
-    delimiter_pattern = r"<delim>"
-    answer = re.sub(delimiter_pattern, "", answer)
-    
-    phrase_pattern = r"<p>(.*?)</p>"
-    old_hbbox_pattern = r"\{(<\d+>)(<\d+>)(<\d+>)(<\d+>)\|<(\d+)>\}"
-    
-    phrases = [(match.group(1), match.start(), match.end()) for match in re.finditer(phrase_pattern, answer)]
-    
-    formatted_answer = ""
-    for i, (phrase, start_idx, end_idx) in enumerate(phrases):
-        if re.search(old_hbbox_pattern, phrase) or inconvertible_phrase(phrase):
-            raise PhraseError(phrase)
-        new_sentence = f"{phrase}"
-        
-        search_start = end_idx
-        # phrases[i+1][1] = start_idx of next phrase
-        search_end = phrases[i + 1][1] if i + 1 < len(phrases) else len(answer)
-        sub_text = answer[search_start:search_end]
-        matched_old_hbbox_pattern = list(re.finditer(old_hbbox_pattern, sub_text))
-        hbbox_pattern = ""
-        for match in matched_old_hbbox_pattern:
-            try:
-                locs = [match.group(i).strip('<>') for i in range(1, 5)]
-                locs = geochat_to_florence2_bbox(locs)
-                hbbox_pattern += "".join([f"<loc_{loc}>" for loc in locs])
-            except CoordinateValueError:
-                raise
-            angle = match.group(5)
-            hbbox_pattern += f"<angle_{angle}>"
-        new_sentence += f"{hbbox_pattern}"
-        formatted_answer += new_sentence
-
-    return formatted_question, formatted_answer
-
-
-def format_grounding_description(answer):
-    formatted_question = "<MORE_DETAILED_CAPTION>"
-    delimiter_pattern = r"<delim>"
-    old_hbbox_pattern = r"\{(<\d+>)(<\d+>)(<\d+>)(<\d+>)\|<(\d+)>\}"
-    phrase_pattern = r"<p>(.*?)</p> "
-    
-    formatted_answer = re.sub(delimiter_pattern, "", answer)
-    
-    phrase_pattern = r"<p>(.*?)</p> "
-    phrases =  [match.group(1) for match in re.finditer(phrase_pattern, formatted_answer)]
-    for phrase in phrases:
-        if re.search(old_hbbox_pattern, phrase) or inconvertible_phrase(phrase):
-            raise PhraseError(phrase)
-        formatted_answer = re.sub(phrase_pattern, phrase.strip(), formatted_answer)
-        
-    matched_old_hbbox_pattern = list(re.finditer(old_hbbox_pattern, formatted_answer))
-    hbbox_pattern = ""
-    for match in matched_old_hbbox_pattern:
-        try:
-            locs = [match.group(i).strip('<>') for i in range(1, 5)]
-            locs = geochat_to_florence2_bbox(locs)
-            hbbox_pattern += "".join([f"<loc_{loc}>" for loc in locs])
-        except CoordinateValueError:
-            raise
-        angle = match.group(5)
-        hbbox_pattern += f"<angle_{angle}>" 
-        formatted_answer = re.sub(old_hbbox_pattern, hbbox_pattern , formatted_answer)
-           
-    return formatted_question, formatted_answer
-
-
 def format_scene_classify(question):
     question = question.strip()
     formatted_question = "<SCENE_CLASSIFY>"
@@ -255,28 +160,7 @@ def format_conversations(conversations, image_path):
                 formatted_conversations.append({'from': 'gpt', 'value': formatted_answer})
             except(CoordinateValueError, PhraseError):
                 raise
-            
-    elif '[identify]' in question:
-        for i in range(0, len(conversations), 2):
-            try:
-                formatted_question, formatted_answer = format_identify(conversations[i]['value'], conversations[i+1]['value'])
-                formatted_conversations.append({'from': 'human', 'value': formatted_question})
-                formatted_conversations.append({'from': 'gpt', 'value': formatted_answer})
-            except(CoordinateValueError, PhraseError):
-                raise
                 
-    elif '[grounding]' in question:
-        for i in range(0, len(conversations), 2):
-            try:
-                formatted_question, formatted_answer = format_grounding_visual(conversations[i+1]['value'])
-                formatted_conversations.append({'from': 'human', 'value': formatted_question})
-                formatted_conversations.append({'from': 'gpt', 'value': formatted_answer})
-                formatted_question, formatted_answer = format_grounding_description(conversations[i+1]['value'])
-                formatted_conversations.append({'from': 'human', 'value': formatted_question})
-                formatted_conversations.append({'from': 'gpt', 'value': formatted_answer})
-            except(CoordinateValueError, PhraseError):
-                raise
-
     elif question.startswith('Classify'):
         for i in range(0, len(conversations), 2):
             formatted_question = format_scene_classify(conversations[i]['value'])
@@ -303,10 +187,10 @@ class formatVQA(Dataset):
         return self.list_data_dict
          
 
-VQA_dataset = formatVQA("GeoChat_Instruct.json")
+VQA_dataset = formatVQA("/absolute/path/to/GeoChat_Instruct.json")
 list_data_dict = VQA_dataset._get_data_dict()
 
-source_dir = "/home/ubuntu/Documents/nam/GeoChat_images/share/softwares/kartik/GeoChat_finetuning/final_images_llava"
+source_dir = "/absolute/path/to/share/softwares/kartik/GeoChat_finetuning/final_images_llava"
 new_list_data_dict = []
 for sample in list_data_dict:
     relative_image_path = sample['image']
